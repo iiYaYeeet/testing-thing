@@ -1,6 +1,6 @@
 # This file uses centimeters as units for non-parametric coordinates.
 
-mtllib engine.mtl
+mtllib nozzletest.mtl
 g default
 v 2.289873 -8.964097 -0.744025
 v 2.407713 -8.964097 -0.000000
