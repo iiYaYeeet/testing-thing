@@ -135,7 +135,7 @@ public class expansioncontroller : MonoBehaviour
             var mainModule1 = ps.main;
             cz1.color = new ParticleSystem.MinMaxGradient(result);
             sz1.size = new ParticleSystem.MinMaxCurve(1.2f, resultc);
-            mainModule1.startSize = Mathf.SmoothStep(4, 30*pses.IndexOf(ps), pressure);
+            mainModule1.startSize = Mathf.SmoothStep(4, 30*pses.IndexOf(ps)-0.25f, pressure);
             mainModule1.startLifetime = Mathf.SmoothStep(0.2f, 0.45f, pressure);
             mainModule1.startSpeed =Mathf.SmoothStep(120*throttlevalue, 160*throttlevalue*pses.IndexOf(ps), pressure);
         }
