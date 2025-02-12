@@ -17,6 +17,7 @@ public class expansioncontroller : MonoBehaviour
     [Space(2)]
     [Header("-----------------'Engine' Driven Variables------------------")]
     [Space(2)]
+    [Tooltip("0-1, higher=more clean")] [Range(0,1)] public float currentmixratio;
     [Tooltip("0-1, higher=more clean")] [Range(0,1)] [SerializeField] private float stoichemetry;
     [Tooltip("1000-6000 km/s")] [SerializeField] private float exhaustVelocity;
     [Tooltip("Exhaust products")] [SerializeField] exhaust ex = new exhaust();
@@ -100,7 +101,7 @@ public class expansioncontroller : MonoBehaviour
 
         #region visexhaust calculations
 
-        stoichemetry = mixtureRatio;
+        stoichemetry = currentmixratio;
         pressure = Mathf.Sqrt(exhaustPressure / atmosphericPressure);
 
         #endregion
@@ -142,8 +143,10 @@ public class expansioncontroller : MonoBehaviour
     }
     public void Update()
     {
+        
         throttle = Mathf.Clamp(throttle, 70, 120);
-        throttlevalue = throttle/100;
+        trueThrottle = Mathf.Lerp(trueThrottle, throttle, 0.05f);
+        throttlevalue = trueThrottle/100;
         if (Input.GetKey(KeyCode.E))
         {
             anim.enabled = true;
@@ -169,11 +172,39 @@ public class expansioncontroller : MonoBehaviour
         }
     }
 
+    
     public void animshut()
     {
         anim.enabled = false;
     }
-     public static class gradientconvert
+
+    public IEnumerator transient()
+    {
+        while (currentmixratio <= mixtureRatio-0.05f)
+        {
+            currentmixratio = Mathf.Lerp(currentmixratio, mixtureRatio, 0.04f);
+            yield return new WaitForFixedUpdate();
+        }
+        animshut();
+        while (trueThrottle <= throttle-0.05f)
+        {
+            trueThrottle = Mathf.Lerp(trueThrottle, throttle, 0.02f);
+            yield return new WaitForFixedUpdate();
+        }
+    }
+    public IEnumerator shutdowntransient()
+    {
+        while (currentmixratio >= 0.2f)
+        {
+            Debug.Log("called");
+            currentmixratio = Mathf.Lerp(currentmixratio, 0.1f, 0.01f);
+            yield return null;
+        }
+    }
+
+
+
+    public static class gradientconvert
     {
         public static UnityEngine.Gradient Lerp(UnityEngine.Gradient a, UnityEngine.Gradient b, float t)
         {
