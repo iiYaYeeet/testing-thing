@@ -5,6 +5,10 @@ using UnityEngine;
 
 public class expansioncontroller : MonoBehaviour
 {
+    #region declerations
+    
+    #region player driven
+
     [Header("------------------Player Driven Variables------------------")]
     [Space(2)]
     [Tooltip("0-1, higher=more clean")] [Range(0,1)] public float mixtureRatio;
@@ -14,7 +18,12 @@ public class expansioncontroller : MonoBehaviour
     [Tooltip("Fuel Combination")] [SerializeField] fuelComp FC = new fuelComp();
     [Tooltip("Engine Cycle")][SerializeField] engineCycle EC = new engineCycle();
     [Tooltip("70-120 during normal runs")] [Range(70,120)] public float throttle;
+    
     [Space(2)]
+    #endregion
+
+    #region engine driven
+    
     [Header("-----------------'Engine' Driven Variables------------------")]
     [Space(2)]
     [Tooltip("0-1, higher=more clean")] [Range(0,1)] public float currentmixratio;
@@ -32,14 +41,22 @@ public class expansioncontroller : MonoBehaviour
     [Tooltip("MN")] public float thrust;
     [Tooltip("Seconds")] public float ISP;
     [Space(2)]
+    #endregion
+
+    #region displayed
+    
     [Header("-------------------Displayed Variables---------------------")]
     [Space(2)]
     [Tooltip("MN")] public float displayedthrust;
     [Tooltip("s")] public float displayedisp;
     [Tooltip("60-140")] public float trueThrottle;
     [Tooltip("60-140")] public float throttlevalue;
+    
+    
+    #endregion
 
-
+    #region other
+    
     [Space(2)]
     [Header("-------------------Other---------------------")]
     [Space(2)]
@@ -50,6 +67,13 @@ public class expansioncontroller : MonoBehaviour
     [SerializeField] private Gradient uncleansl, uncleanalt, stoichometricsl, stoichometricalt, sealevel, altitude, result, uncleanpsl, uncleanpalt, stoichometricpsl,stoichometricpalt, sealevelp, altitudep, resultp;
     [SerializeField] private AnimationCurve sealevelc, altitudec, resultc;
     [SerializeField] private List<ParticleSystem> pses;
+    
+
+    #endregion
+    
+    #endregion
+
+    #region enums
     
     enum fuelComp
     {
@@ -74,8 +98,10 @@ public class expansioncontroller : MonoBehaviour
         FullFlowStaged,
         PressureFed
     }
+    
+    #endregion
 
-
+    public ParticleSystem part;
     public void Start()
     {
         resultc.CopyFrom(sealevelc);
@@ -84,19 +110,26 @@ public class expansioncontroller : MonoBehaviour
     public void FixedUpdate()
     {
         #region Nozzle Calculations
+        
         exitArea = Mathf.PI*(exitradius*Mathf.Exp(2));
         exitRatio = exitradius/throatradius;
         //chamberTemperature = stoichemetry;
+        
         #endregion
+        
         #region exhaust calculations
+        
         flowRate = chamberPressure * (exitArea / exitRatio);
         exhaustPressure = (chamberPressure/100) / exitRatio;
         exhaustTemperature = chamberTemperature * exhaustPressure;
         exhaustVelocity = flowRate / (atmosphericPressure*exhaustPressure);
+        
         #endregion
+        
         #region Thrust and ISP calc
         thrust = flowRate / exhaustVelocity*exhaustPressure;
         ISP = exhaustVelocity / gravity;
+        
         #endregion
 
         #region visexhaust calculations
@@ -105,13 +138,17 @@ public class expansioncontroller : MonoBehaviour
         pressure = Mathf.Sqrt(exhaustPressure / atmosphericPressure);
 
         #endregion
+        
+        #region gradientconversions
         sealevel = gradientconvert.Lerp(uncleansl, stoichometricsl, stoichemetry);
         altitude = gradientconvert.Lerp(uncleanalt, stoichometricalt, stoichemetry);
         result = gradientconvert.Lerp(sealevel, altitude, pressure);
         sealevelp = gradientconvert.Lerp(uncleanpsl, stoichometricpsl, stoichemetry);
         altitudep = gradientconvert.Lerp(uncleanpalt, stoichometricpalt, stoichemetry);
         resultp = gradientconvert.Lerp(sealevelp, altitudep, pressure);
-
+        #endregion
+        
+        #region particlesystem works
         var sz = ps.sizeOverLifetime;
         var cz = ps.colorOverLifetime;
         var czp = ps2.colorOverLifetime;
@@ -140,13 +177,24 @@ public class expansioncontroller : MonoBehaviour
             mainModule1.startLifetime = Mathf.SmoothStep(0.2f, 0.45f, pressure);
             mainModule1.startSpeed =Mathf.SmoothStep(120*throttlevalue, 160*throttlevalue*pses.IndexOf(ps), pressure);
         }
+        for (int i = 0; i < sealevelc.length; i++)
+        {
+            resultc.MoveKey(i, new Keyframe(altitudec[i].time, Mathf.SmoothStep(sealevelc[i].value,altitudec[i].value, pressure)));
+            resultc.SmoothTangents(i,0.2f);
+        }
+        #endregion
     }
     public void Update()
     {
+        #region throttlecalc
+
         
         throttle = Mathf.Clamp(throttle, 70, 120);
         trueThrottle = Mathf.Lerp(trueThrottle, throttle, 0.05f);
         throttlevalue = trueThrottle/100;
+
+        #endregion
+        #region input
         if (Input.GetKey(KeyCode.E))
         {
             anim.enabled = true;
@@ -165,11 +213,7 @@ public class expansioncontroller : MonoBehaviour
         {
             throttle -= 1f;
         }
-        for (int i = 0; i < sealevelc.length; i++)
-        {
-            resultc.MoveKey(i, new Keyframe(altitudec[i].time, Mathf.SmoothStep(sealevelc[i].value,altitudec[i].value, pressure)));
-            resultc.SmoothTangents(i,0.2f);
-        }
+        #endregion
     }
 
     
@@ -178,6 +222,11 @@ public class expansioncontroller : MonoBehaviour
         anim.enabled = false;
     }
 
+    public void trenchtest()
+    {
+        var emissionModule = part.emission;
+        emissionModule.enabled = true;
+    }
     public IEnumerator transient()
     {
         while (currentmixratio <= mixtureRatio-0.05f)
@@ -200,82 +249,8 @@ public class expansioncontroller : MonoBehaviour
             currentmixratio = Mathf.Lerp(currentmixratio, 0.1f, 0.01f);
             yield return null;
         }
-    }
-
-
-
-    public static class gradientconvert
-    {
-        public static UnityEngine.Gradient Lerp(UnityEngine.Gradient a, UnityEngine.Gradient b, float t)
-        {
-            return Lerp(a, b, t, false, false);
-        }
-
-        public static UnityEngine.Gradient LerpNoAlpha(UnityEngine.Gradient a, UnityEngine.Gradient b, float t)
-        {
-            return Lerp(a, b, t, true, false);
-        }
-
-        public static UnityEngine.Gradient LerpNoColor(UnityEngine.Gradient a, UnityEngine.Gradient b, float t)
-        {
-            return Lerp(a, b, t, false, true);
-        }
-
-        static UnityEngine.Gradient Lerp(UnityEngine.Gradient a, UnityEngine.Gradient b, float t, bool noAlpha, bool noColor)
-        {
-            //list of all the unique key times
-            var keysTimes = new List<float>();
-
-            if (!noColor)
-            {
-                for (int i = 0; i < a.colorKeys.Length; i++)
-                {
-                    float k = a.colorKeys[i].time;
-                    if (!keysTimes.Contains(k))
-                        keysTimes.Add(k);
-                }
-
-                for (int i = 0; i < b.colorKeys.Length; i++)
-                {
-                    float k = b.colorKeys[i].time;
-                    if (!keysTimes.Contains(k))
-                        keysTimes.Add(k);
-                }
-            }
-
-            if (!noAlpha)
-            {
-                for (int i = 0; i < a.alphaKeys.Length; i++)
-                {
-                    float k = a.alphaKeys[i].time;
-                    if (!keysTimes.Contains(k))
-                        keysTimes.Add(k);
-                }
-
-                for (int i = 0; i < b.alphaKeys.Length; i++)
-                {
-                    float k = b.alphaKeys[i].time;
-                    if (!keysTimes.Contains(k))
-                        keysTimes.Add(k);
-                }
-            }
-
-            GradientColorKey[] clrs = new GradientColorKey[keysTimes.Count];
-            GradientAlphaKey[] alphas = new GradientAlphaKey[keysTimes.Count];
-
-            //Pick colors of both gradients at key times and lerp them
-            for (int i = 0; i < keysTimes.Count; i++)
-            {
-                float key = keysTimes[i];
-                var clr = Color.LerpUnclamped(a.Evaluate(key), b.Evaluate(key), t);
-                clrs[i] = new GradientColorKey(clr, key);
-                alphas[i] = new GradientAlphaKey(clr.a, key);
-            }
-
-            var g = new UnityEngine.Gradient();
-            g.SetKeys(clrs, alphas);
-
-            return g;
-        }
+        
+        var emissionModule = part.emission;
+        emissionModule.enabled = false;
     }
 }
